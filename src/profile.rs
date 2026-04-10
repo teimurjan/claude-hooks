@@ -5,8 +5,7 @@ const VALID_PROFILES: [&str; 3] = ["minimal", "standard", "strict"];
 
 fn hook_allowed_profiles(hook_id: &str) -> &'static [&'static str] {
     match hook_id {
-        "session-start" | "session-end" | "evaluate-session" | "cost-tracker"
-        | "session-end-marker" | "pre-compact" => &["minimal", "standard", "strict"],
+        "session-start" | "cost-tracker" => &["minimal", "standard", "strict"],
 
         "pre-bash-tmux-reminder" | "pre-bash-git-push-reminder" => &["strict"],
 
@@ -51,7 +50,7 @@ mod tests {
 
     #[test]
     fn lifecycle_hooks_allowed_in_all_profiles() {
-        for hook in ["session-start", "session-end", "cost-tracker", "pre-compact"] {
+        for hook in ["session-start", "cost-tracker"] {
             let profiles = hook_allowed_profiles(hook);
             assert!(profiles.contains(&"minimal"), "{hook} should be in minimal");
             assert!(profiles.contains(&"standard"), "{hook} should be in standard");

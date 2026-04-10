@@ -152,16 +152,6 @@ fn binary_build_complete_fires() {
     assert!(stderr.contains("Build completed"));
 }
 
-// --- session-end-marker passthrough ---
-
-#[test]
-fn binary_session_end_marker_passthrough() {
-    let json = r#"{"event": "end"}"#;
-    let (code, stdout, _) = run_hook("session-end-marker", json);
-    assert_eq!(code, 0);
-    assert_eq!(stdout, json);
-}
-
 // --- Disabled hook passthrough ---
 
 #[test]

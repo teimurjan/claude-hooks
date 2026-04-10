@@ -24,7 +24,7 @@ The release binary is optimized for size (`opt-level = "s"`, LTO, strip, single 
 - **`profile.rs`** — Three-tier profile system (`minimal`/`standard`/`strict`) controlled by `TEIMURJAN_HOOK_PROFILE` env var. Each hook declares which profiles it runs under. Individual hooks can be disabled via `TEIMURJAN_DISABLED_HOOKS` (comma-separated).
 - **`pre_tool.rs`** — PreToolUse hooks: blocks dev servers outside tmux, tmux reminders, git push warnings, doc file path validation, compact suggestion counter.
 - **`post_tool.rs`** — PostToolUse hooks: PR creation logging, build notifications, quality gate (biome/prettier/ruff/gofmt), auto-format on edit, TypeScript type checking, console.log detection.
-- **`lifecycle.rs`** — Session lifecycle: session start (project detection, previous session loading), pre-compact state saving, console.log check on stop, session end (transcript parsing + summary persistence), session evaluation for learning, cost tracking to `~/.claude/metrics/costs.jsonl`.
+- **`lifecycle.rs`** — Session start (project/language/framework/package manager detection), console.log check on stop, cost tracking to `~/.claude/metrics/costs.jsonl`.
 - **`util.rs`** — Shared helpers: JSON parsing (`parse_input`, `get_command`, `get_file_path`), file I/O, local time via libc, git operations, project root detection.
 
 ### Key Patterns
@@ -43,8 +43,7 @@ The release binary is optimized for size (`opt-level = "s"`, LTO, strip, single 
 | `TEIMURJAN_QUALITY_GATE_FIX` | `true` to auto-fix (write mode) |
 | `TEIMURJAN_QUALITY_GATE_STRICT` | `true` to warn on formatter failures |
 | `COMPACT_THRESHOLD` | Tool call count before suggesting /compact (default: 50) |
-| `CLAUDE_SESSION_ID` | Used for session file naming and cost tracking |
-| `CLAUDE_TRANSCRIPT_PATH` | Fallback path to session transcript for summary extraction |
+| `CLAUDE_SESSION_ID` | Used for cost tracking |
 
 ## Adding a New Hook
 

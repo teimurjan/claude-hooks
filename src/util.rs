@@ -3,7 +3,6 @@ use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{Duration, SystemTime};
 
 use serde_json::Value;
 
@@ -15,14 +14,6 @@ pub fn home_dir() -> PathBuf {
 
 pub fn claude_dir() -> PathBuf {
     home_dir().join(".claude")
-}
-
-pub fn sessions_dir() -> PathBuf {
-    claude_dir().join("sessions")
-}
-
-pub fn learned_skills_dir() -> PathBuf {
-    claude_dir().join("skills").join("learned")
 }
 
 // --- File operations ---
@@ -37,13 +28,6 @@ pub fn read_file(path: &Path) -> Option<String> {
     fs::read_to_string(path).ok()
 }
 
-pub fn write_file(path: &Path, content: &str) {
-    if let Some(parent) = path.parent() {
-        ensure_dir(parent);
-    }
-    let _ = fs::write(path, content);
-}
-
 pub fn append_file(path: &Path, content: &str) {
     if let Some(parent) = path.parent() {
         ensure_dir(parent);
@@ -54,42 +38,6 @@ pub fn append_file(path: &Path, content: &str) {
 }
 
 // --- File search ---
-
-pub struct FileEntry {
-    pub path: PathBuf,
-    pub mtime: SystemTime,
-}
-
-pub fn find_files(dir: &Path, suffix: &str, max_age_days: Option<u64>) -> Vec<FileEntry> {
-    let Ok(entries) = fs::read_dir(dir) else {
-        return vec![];
-    };
-
-    let mut results: Vec<FileEntry> = entries
-        .filter_map(|e| e.ok())
-        .filter_map(|e| {
-            let name = e.file_name();
-            if !name.to_string_lossy().ends_with(suffix) {
-                return None;
-            }
-            let meta = e.metadata().ok()?;
-            if !meta.is_file() {
-                return None;
-            }
-            let mtime = meta.modified().ok()?;
-            if let Some(max_days) = max_age_days {
-                let age = SystemTime::now().duration_since(mtime).unwrap_or_default();
-                if age > Duration::from_secs(max_days * 86400) {
-                    return None;
-                }
-            }
-            Some(FileEntry { path: e.path(), mtime })
-        })
-        .collect();
-
-    results.sort_by(|a, b| b.mtime.cmp(&a.mtime));
-    results
-}
 
 // --- JSON helpers ---
 
@@ -154,56 +102,12 @@ fn local_now() -> LocalTime {
     }
 }
 
-pub fn date_string() -> String {
-    let t = local_now();
-    format!("{:04}-{:02}-{:02}", t.year, t.month, t.day)
-}
-
-pub fn time_string() -> String {
-    let t = local_now();
-    format!("{:02}:{:02}", t.hour, t.min)
-}
-
-pub fn datetime_string() -> String {
-    let t = local_now();
-    format!(
-        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-        t.year, t.month, t.day, t.hour, t.min, t.sec
-    )
-}
-
 pub fn iso_timestamp() -> String {
     let t = local_now();
     format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
         t.year, t.month, t.day, t.hour, t.min, t.sec
     )
-}
-
-// --- Session ID ---
-
-pub fn session_id_short() -> String {
-    if let Ok(sid) = env::var("CLAUDE_SESSION_ID") {
-        if !sid.is_empty() {
-            let start = sid.len().saturating_sub(8);
-            return sid[start..].to_string();
-        }
-    }
-    git_repo_name().unwrap_or_else(|| "default".into())
-}
-
-fn git_repo_name() -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let toplevel = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Path::new(&toplevel)
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
 }
 
 // --- Git ---
@@ -301,24 +205,6 @@ mod tests {
     }
 
     #[test]
-    fn date_string_format() {
-        let d = date_string();
-        assert!(
-            regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap().is_match(&d),
-            "date_string() = {d}"
-        );
-    }
-
-    #[test]
-    fn time_string_format() {
-        let t = time_string();
-        assert!(
-            regex::Regex::new(r"^\d{2}:\d{2}$").unwrap().is_match(&t),
-            "time_string() = {t}"
-        );
-    }
-
-    #[test]
     fn iso_timestamp_format() {
         let ts = iso_timestamp();
         assert!(
@@ -342,28 +228,6 @@ mod tests {
     #[test]
     fn find_project_root_not_found() {
         assert_eq!(find_project_root(Path::new("/nonexistent/deep/path"), "XXXNOTEXIST"), None);
-    }
-
-    #[test]
-    fn find_files_with_suffix() {
-        let tmp = env::temp_dir().join("claude-hooks-test-ff");
-        let _ = fs::create_dir_all(&tmp);
-        let _ = fs::write(tmp.join("a-session.tmp"), "a");
-        let _ = fs::write(tmp.join("b-session.tmp"), "b");
-        let _ = fs::write(tmp.join("other.txt"), "c");
-        let results = find_files(&tmp, "-session.tmp", None);
-        assert_eq!(results.len(), 2);
-        let _ = fs::remove_dir_all(&tmp);
-    }
-
-    #[test]
-    fn write_and_read_file() {
-        let tmp = env::temp_dir().join("claude-hooks-test-wrf");
-        let _ = fs::create_dir_all(&tmp);
-        let file = tmp.join("test.txt");
-        write_file(&file, "hello");
-        assert_eq!(read_file(&file), Some("hello".into()));
-        let _ = fs::remove_dir_all(&tmp);
     }
 
     #[test]

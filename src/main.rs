@@ -86,12 +86,8 @@ fn dispatch(hook_id: &str, raw: &str) -> HookResult {
 
         // Lifecycle
         "session-start" => lifecycle::session_start(raw),
-        "pre-compact" => lifecycle::pre_compact(raw),
         "check-console-log" => lifecycle::check_console_log(raw),
-        "session-end" => lifecycle::session_end(raw),
-        "evaluate-session" => lifecycle::evaluate_session(raw),
         "cost-tracker" => lifecycle::cost_tracker(raw),
-        "session-end-marker" => HookResult::ok(),
 
         _ => HookResult::ok(),
     }
